@@ -1,0 +1,46 @@
+import pandas as pd
+import math
+from pprint import pprint
+
+def entropy(data):
+    labels = data['Target']
+    total_samples = len(labels)
+    unique_labels = set(labels)
+    entropy_value = 0
+
+    for label in unique_labels:
+        label_count = labels.tolist().count(label)
+        probability = label_count / total_samples
+        entropy_value -= probability * math.log2(probability)
+    return entropy_value
+
+def information_gain(data, feature):
+    total_entropy = entropy(data)
+    feature_values = set(data[feature])
+    weighted_entropy = 0
+
+    for value in feature_values:
+        subset = data[data[feature] == value]
+        probability = len(subset) / len(data)
+        weighted_entropy += probability * entropy(subset)
+    return total_entropy - weighted_entropy
+
+def build_tree(data, features):
+    labels = data['Target']
+
+    if len(set(labels)) == 1:
+        return labels.iloc[0]
+
+    best_feature = max(features, key=lambda f: information_gain(data, f))
+    tree = {best_feature: {}}
+    
+    for value in data[best_feature].unique():
+        subset = data[data[best_feature] == value].drop(columns=[best_feature])
+        tree[best_feature][value] = build_tree(subset, [f for f in features if f != best_feature])
+    return tree
+
+file_path = 'data.csv'  
+data = pd.read_csv(file_path)
+features = list(data.columns[:-1])
+decision_tree = build_tree(data, features)
+pprint(decision_tree)
